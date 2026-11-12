@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>G1 Dances 3D viewer: all 893 Unitree G1 dances</title><link rel="canonical" href="https://kyry.me/g1-dances/viewer/"><link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta name="description" content="Play all 893 G1 Dances motions on a 3D Unitree G1 in your browser. Retargeted from the AIST Dance Video Database.">
+<style>
+:root{--bg:#f4f4f1;--ink:#141414;--soft:#5d5d5a;--muted:#8d8d89;--line:#e1e0dc;--panel:#fbfbf9;--accent:#e5482b}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif}
+.app{display:grid;grid-template-columns:330px 1fr;height:100%}
+aside{display:flex;flex-direction:column;min-height:0;background:var(--panel);border-right:1px solid var(--line)}
+.head{padding:18px 18px 10px}
+.head h1{margin:0;font-size:22px;letter-spacing:-.02em}
+.head p{margin:4px 0 0;color:var(--soft);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 18px 12px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tools{display:flex;gap:8px;padding:0 18px 12px}
+.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.list{flex:1;overflow:auto;border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:10px;padding:8px 18px;cursor:pointer;border-bottom:1px solid #efeeea}
+.row:hover{background:#f1f0ec}.row[aria-current=true]{background:#ecebe6}
+.num{font-weight:700;font-variant-numeric:tabular-nums;width:34px;color:var(--muted)}
+.row[aria-current=true] .num{color:var(--accent)}
+.meta{flex:1;min-width:0}.meta b{font-weight:600}.meta span{color:var(--muted);font-size:12px;display:block}
+.dur{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.foot{padding:12px 18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--soft)}
+.foot a{color:var(--ink)}
+main{position:relative;min-width:0}
+canvas{display:block;width:100%;height:100%}
+.info{position:absolute;left:20px;top:16px;pointer-events:none}
+.info h2{margin:0;font-size:26px;letter-spacing:-.02em}
+.info p{margin:2px 0 0;color:var(--soft);font-size:13px}
+.bar{position:absolute;left:16px;right:16px;bottom:14px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.86);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:14px;padding:8px 12px}
+.bar input[type=range]{flex:1;accent-color:var(--ink)}
+.bar .t{font-variant-numeric:tabular-nums;color:var(--soft);font-size:12px;min-width:74px;text-align:right}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:5px 10px;font-size:12px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.dl{font-size:12px;color:var(--ink);white-space:nowrap}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);pointer-events:none}
+@media(max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:56vh 1fr}aside{border-right:0;border-top:1px solid var(--line);order:2}main{order:1}.info h2{font-size:20px}.bar{flex-wrap:wrap}.dl{display:none}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div class="app">
+ <aside>
+  <div class="head"><p style="margin:0 0 6px"><a href="../" style="color:var(--soft);text-decoration:none;font-size:13px">← G1 Dances</a></p><h1>3D viewer</h1><p><span id="count">893</span> dances on the Unitree G1 · all trackable by NVIDIA SONIC</p></div>
+  <div class="chips" id="chips"></div>
+  <div class="tools"><button class="btn" id="random">Random dance</button><button class="btn ghost" id="crowd" aria-pressed="false">Crowd 5×5</button></div>
+  <div class="list" id="list"></div>
+  <div class="foot">Dances from the <a href="https://aistdancedb.ongaaccel.jp/" target="_blank" rel="noopener">AIST Dance Video Database</a> (AIST) via AIST++, retargeted to the G1. If you use them, cite Tsuchida et al., ISMIR 2019 (required). Data: <a href="https://huggingface.co/datasets/Kyry10/g1-dances" target="_blank" rel="noopener">Kyry10/g1-dances</a> · <a href="NOTICE.md">notices</a>. Simulation only.</div>
+ </aside>
+ <main>
+  <canvas id="c"></canvas>
+  <div class="info"><h2 id="title">Loading…</h2><p id="sub"></p></div>
+  <div class="loading" id="loading">Loading the G1…</div>
+  <div class="bar">
+   <button class="btn" id="play">Pause</button>
+   <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Time">
+   <span class="t" id="time">0.0 / 0.0 s</span>
+   <div class="seg" id="speed"><button data-s="0.5">0.5×</button><button data-s="1" aria-pressed="true">1×</button></div>
+   <a class="dl" id="dl" href="#" target="_blank" rel="noopener">Download .npz ↓</a>
+  </div>
+ </main>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
